@@ -54,6 +54,7 @@ void loop() {
     currentMillis = millis();
     if ((ledAllume == true) && (currentMillis - buttonMillis > TEMPS_LED)) {
         digitalWrite(LED_PIN, LOW); // On éteint la LED
+        ledAllume = false;
     }
 
     Serial.print("Accélération : "); Serial.print(totalAccel); Serial.println(" g");
