@@ -17,6 +17,7 @@ int currentMillis = 0;
 bool chuteDetectee = false;
 bool ledAllume = false;
 bool alerteAnnulee = false;
+char message[50];
 
 void setup() {
     Serial.begin(9600);
@@ -42,7 +43,7 @@ void loop() {
     accelY = AcY / CONVERSION;
     accelZ = AcZ / CONVERSION;
 
-    // Détection du bouton pour annuler l'alerte
+    // Détection du bouton pour éteindre la LED + envoyer la fausse alerte
     if (digitalRead(BUTTON_PIN) == LOW) {
         alerteAnnulee = true;
         digitalWrite(LED_PIN, LOW); // On éteint la LED
@@ -51,7 +52,7 @@ void loop() {
         Serial.print("ok");
         XBee.println("FAUSSE_ALERTE");
         Serial.print("ok2");
-        chuteDetectee = false;
+        chuteDetectee = true;
     }
 
     // Calcul de l’accélération totale
@@ -61,36 +62,30 @@ void loop() {
     if (ledAllume && (currentMillis - buttonMillis > TEMPS_LED)) {
         digitalWrite(LED_PIN, LOW); // On éteint la LED
         ledAllume = false;
+        XBee.println(message);
     }
 
     Serial.print("Accélération : "); Serial.print(totalAccel); Serial.println(" g");
 
     // Phase 1 : Détection de la chute libre
     if (totalAccel > SEUIL_CHUTE_LIBRE && totalAccel < SEUIL_IMPACT) {
-        alerteAnnulee = false;
-            char message[50];
-            sprintf(message, "ALERTE_DEBUT_CHUTE;X:%d;Y:%d;Z:%d", AcX, AcY, AcZ);
-            Serial.println("🚀 Envoi : " + String(message));  // Debug dans le Moniteur Série
-        
+      alerteAnnulee = false;
+      sprintf(message, "ALERTE_DEBUT_CHUTE;X:%d;Y:%d;Z:%d", AcX, AcY, AcZ);
+      Serial.println("🚀 Envoi : " + String(message));  // Debug dans le Moniteur Série  
     }
 
     // Phase 2 : Détection de l’impact
     if (totalAccel > SEUIL_IMPACT) {
-        digitalWrite(LED_PIN, HIGH); // On éteint la LED
+        digitalWrite(LED_PIN, HIGH); // On allume la LED
         Serial.println("🚀 chute 10s : " );  // Debug dans le Moniteur Série
         delay(TEMPS_ATTENTE_ALERTE); // Attendre 10 secondes avant d'envoyer l'alerte
 
         if (!alerteAnnulee) {
-          char message[50];
           sprintf(message, "ALERTE_CHUTE;X:%d;Y:%d;Z:%d", AcX, AcY, AcZ);
           Serial.println("🚀 Envoi : " + String(message));  // Debug dans le Moniteur Série
-          XBee.println(message);
-          digitalWrite(LED_PIN, HIGH); // On allume la LED
           buttonMillis = currentMillis; // reset the clock
           ledAllume = true;
-          chuteDetectee = true;
         }
-        
     }
       
     // Réinitialisation après 0.3 secondes pour détecter une nouvelle chute
